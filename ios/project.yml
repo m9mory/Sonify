@@ -12,6 +12,9 @@ settings:
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_STRICT_CONCURRENCY: minimal
+    # Pinned so behaviour does not depend on the Xcode version on the runner.
+    # App sources import everything they use (Foundation, AVFoundation, MediaPlayer).
+    SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: NO
 targets:
   Sonify:
     type: application
