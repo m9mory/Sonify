@@ -2,7 +2,7 @@ name: iOS
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
       - "ios/**"
       - ".github/workflows/ios.yml"
@@ -25,11 +25,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app && xcodebuild -version
+      # Use whatever Xcode ships with the image: no hardcoded version that can
+      # disappear when GitHub updates the runner. Print it for diagnostics.
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcode-select -p
+          sw_vers
 
+      # Prebuilt binary instead of `brew install` (no network-stalled brew taps).
       - name: Install XcodeGen
-        run: brew install xcodegen
+        run: |
+          curl -fsSL -o xcodegen.zip \
+            https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
+          unzip -q xcodegen.zip
+          sudo cp xcodegen/xcodegen /usr/local/bin/xcodegen
+          xcodegen --version
 
       - name: Generate Xcode project
         working-directory: ios
@@ -42,7 +53,7 @@ jobs:
       - name: Pick an available simulator
         id: sim
         run: |
-          # Берём самый новый рантайм iOS и первый iPhone в нём.
+          # Newest iOS runtime that has an iPhone device, take the first one.
           DEVICE=$(xcrun simctl list devices available -j | /usr/bin/python3 -c "
           import json, sys
           devices = json.load(sys.stdin)['devices']
