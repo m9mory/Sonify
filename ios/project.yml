@@ -47,7 +47,7 @@ targets:
           - audio
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        NSLocalNetworkUsageDescription: Sonify подключается к локальному бэкенду при разработке.
+        NSLocalNetworkUsageDescription: Sonify connects to the local backend during development.
   SonifyTests:
     type: bundle.unit-test
     platform: iOS
