@@ -20,8 +20,8 @@ targets:
     type: application
     platform: iOS
     sources:
-      # Тесты лежат в отдельной папке рядом с кодом приложения, поэтому
-      # основной таргет собирает только эти каталоги, а не всю папку Sonify.
+      # Tests live in a sibling folder, so the app target lists only these
+      # directories instead of the whole Sonify folder.
       - path: Sonify/App
       - path: Sonify/Core
       - path: Sonify/Data
