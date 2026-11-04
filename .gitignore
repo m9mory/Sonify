@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Runtime data (SQLite + audio seed/uploads)
+backend/var/
+
+# Xcode / XcodeGen
+ios/Sonify.xcodeproj/
+ios/*.xcworkspace/
+ios/build/
+DerivedData/
+*.xcresult
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Env
+.env
+.env.*

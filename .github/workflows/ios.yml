@@ -1,0 +1,106 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test (macOS)
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app && xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: List schemes (diagnostics)
+        working-directory: ios
+        run: xcodebuild -list -project Sonify.xcodeproj
+
+      - name: Pick an available simulator
+        id: sim
+        run: |
+          # Берём самый новый рантайм iOS и первый iPhone в нём.
+          DEVICE=$(xcrun simctl list devices available -j | /usr/bin/python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          runtimes = sorted((r for r in devices if '.iOS-' in r), reverse=True)
+          for runtime in runtimes:
+              ips = [d['name'] for d in devices[runtime] if d['name'].startswith('iPhone')]
+              if ips:
+                  print(ips[0]); break
+          else:
+              raise SystemExit('no iPhone simulator found')
+          ")
+          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+          echo "Selected simulator: $DEVICE"
+
+      - name: Build (Debug, generic simulator)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Sonify.xcodeproj \
+            -scheme Sonify \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Start backend for integration tests
+        working-directory: .
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet "fastapi>=0.115" "uvicorn>=0.30"
+          PYTHONPATH=backend SONIFY_HOST=127.0.0.1 SONIFY_PORT=8080 SONIFY_VAR_DIR="$RUNNER_TEMP/sonify-var" \
+            nohup .venv/bin/python -m uvicorn sonify_api.main:app --host 127.0.0.1 --port 8080 > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/health; then echo; break; fi
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:8080/api/v1/tracks?limit=3" | head -c 400
+
+      - name: Unit + integration tests
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Sonify.xcodeproj \
+            -scheme Sonify \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            -resultBundlePath "$RUNNER_TEMP/SonifyTests.xcresult" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Backend log on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/backend.log" || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: ${{ runner.temp }}/SonifyTests.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

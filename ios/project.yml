@@ -1,0 +1,74 @@
+name: Sonify
+options:
+  bundleIdPrefix: app.sonify
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  developmentLanguage: ru
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_STRICT_CONCURRENCY: minimal
+targets:
+  Sonify:
+    type: application
+    platform: iOS
+    sources:
+      # Тесты лежат в отдельной папке рядом с кодом приложения, поэтому
+      # основной таргет собирает только эти каталоги, а не всю папку Sonify.
+      - path: Sonify/App
+      - path: Sonify/Core
+      - path: Sonify/Data
+      - path: Sonify/Domain
+      - path: Sonify/Features
+      - path: Sonify/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.sonify.ios
+        PRODUCT_NAME: Sonify
+        INFOPLIST_FILE: Sonify/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        SUPPORTS_MACCATALYST: NO
+    info:
+      path: Sonify/Info.plist
+      properties:
+        CFBundleDisplayName: Sonify
+        UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Sonify подключается к локальному бэкенду при разработке.
+  SonifyTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Sonify/Tests
+    dependencies:
+      - target: Sonify
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.sonify.ios.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Sonify:
+    build:
+      targets:
+        Sonify: all
+        SonifyTests: [test]
+    run:
+      config: Debug
+      environmentVariables:
+        SONIFY_API_BASE_URL:
+          value: http://127.0.0.1:8080/api/v1
+          isEnabled: true
+    test:
+      config: Debug
+      targets:
+        - SonifyTests

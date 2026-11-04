@@ -1,0 +1,23 @@
+[project]
+name = "sonify-api"
+version = "0.1.0"
+description = "Sonify backend — REST API for iOS client"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+postgres = ["boto3>=1.34"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["sonify_api*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
